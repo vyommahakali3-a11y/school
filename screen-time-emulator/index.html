@@ -1,0 +1,418 @@
+<title>Screen Time Emulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one centered phone-width column of grouped cards under a sticky glass header; screens push left/right. */
+:root{
+  --bg:#f2f2f7; --card:#ffffff; --fg:#000000; --muted:#8a8a8e; --faint:#c7c7cc; --sep:#d1d1d6;
+  --blue:#007aff; --teal:#5ac4d1; --orange:#f19a37; --rest:#c7c7cc; --red:#ef5152; --pick:#5fc6d3; --green:#34c759;
+  --glass:rgba(255,255,255,.72); --glass-line:rgba(0,0,0,.06); --shadow:0 2px 14px rgba(0,0,0,.08);
+  --sheet:#f2f2f7; --field:#e9e9ee; --sim:#ff9f0a; --sim-bg:rgba(255,159,10,.14);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  font-family:var(--font); color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#000000; --card:#1c1c1e; --fg:#f5f5f7; --muted:#98989d; --faint:#48484a; --sep:#38383a;
+  --blue:#0a84ff; --teal:#64d2de; --orange:#ff9f0a; --rest:#636366; --red:#ff453a; --pick:#64d2de; --green:#30d158;
+  --glass:rgba(44,44,46,.72); --glass-line:rgba(255,255,255,.08); --shadow:0 2px 14px rgba(0,0,0,.5);
+  --sheet:#1c1c1e; --field:#2c2c2e; --sim:#ff9f0a; --sim-bg:rgba(255,159,10,.18); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000000; --card:#1c1c1e; --fg:#f5f5f7; --muted:#98989d; --faint:#48484a; --sep:#38383a;
+  --blue:#0a84ff; --teal:#64d2de; --orange:#ff9f0a; --rest:#636366; --red:#ff453a; --pick:#64d2de; --green:#30d158;
+  --glass:rgba(44,44,46,.72); --glass-line:rgba(255,255,255,.08); --shadow:0 2px 14px rgba(0,0,0,.5);
+  --sheet:#1c1c1e; --field:#2c2c2e; --sim:#ff9f0a; --sim-bg:rgba(255,159,10,.18); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:17px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.phone{max-width:430px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px;min-height:100%}
+/* glass header */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding-block:10px 10px;margin-inline:-8px;padding-inline:8px;
+  background:color-mix(in srgb,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%)}
+.glass-btn{height:48px;min-width:48px;border-radius:24px;border:1px solid var(--glass-line);background:var(--glass);box-shadow:var(--shadow);
+  -webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);display:inline-grid;place-items:center;padding:0 18px;font-size:17px;color:var(--fg)}
+.glass-btn.round{padding:0;width:48px}
+.glass-btn svg{width:22px;height:22px}
+.nav-title{text-align:center;min-width:0;line-height:1.15}
+.nav-title b{display:block;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sim{display:inline-block;margin-top:3px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--sim);background:var(--sim-bg);padding:2px 7px;border-radius:6px}
+.page-title{font-size:34px;font-weight:700;letter-spacing:.2px;margin:6px 0 18px;text-wrap:balance}
+/* segmented */
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--field);border-radius:9px;padding:2px;margin:6px 0 14px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:6px 0;font-size:13px;font-weight:600;color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+/* cards */
+.card{background:var(--card);border-radius:26px;overflow:hidden}
+.chart-card{padding:18px 18px 16px}
+.datenav{display:grid;grid-template-columns:30px 1fr 30px;align-items:center;gap:8px}
+.circle{width:30px;height:30px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--blue);color:#fff;padding:0}
+.circle:disabled{background:var(--faint);cursor:default}
+.circle svg{width:15px;height:15px}
+.datenav h2{margin:0;text-align:center;font-size:19px;font-weight:400;letter-spacing:-.2px}
+.bigline{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:14px 0 4px}
+.biglabel{font-size:13px;color:var(--muted)}
+.bignum{font-size:28px;font-weight:600;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.cmp{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;padding-bottom:6px;white-space:nowrap}
+.chart{position:relative;margin-top:10px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:var(--font);fill:var(--muted)}
+.cats{display:flex;flex-wrap:wrap;justify-content:space-between;column-gap:16px;row-gap:10px;margin-top:12px}
+.cats>div{flex:0 1 auto;max-width:100%}
+.cats .cn{font-size:16px;line-height:1.2}
+.cats .ct{font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:2px}
+.updated{font-size:14px;color:var(--muted);margin:10px 18px 0}
+.sync{font-size:12px;color:var(--muted);margin:4px 18px 0}
+.section-head{display:flex;justify-content:space-between;align-items:baseline;margin:28px 18px 8px;gap:12px}
+.section-head span{font-size:20px;font-weight:600;color:var(--muted)}
+.link{border:0;background:none;color:var(--blue);padding:0;font-size:17px}
+.section-head .link{font-size:18px;font-weight:500}
+/* rows */
+.row{display:grid;grid-template-columns:44px 1fr 14px;gap:14px;align-items:center;padding:10px 18px 0;border:0;background:none;width:100%;text-align:left}
+.row .main{min-width:0;padding-bottom:10px;border-bottom:.5px solid var(--sep)}
+.row.last .main{border-bottom:0}
+.home-row .chev,.set-row .chev{margin-top:0}
+.row .name{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barline{display:flex;align-items:center;gap:8px;margin-top:6px}
+.ubar{height:8px;border-radius:4px;background:var(--faint);flex:none}
+.utime{font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chev{color:var(--faint);width:14px;height:14px;align-self:center;margin-top:-10px}
+.icon{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:600;font-size:20px;letter-spacing:-.5px;
+  box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
+.more{padding:14px 18px 18px}
+.empty{padding:22px 18px;color:var(--muted)}
+/* stat cards */
+.stat{padding:16px 18px 14px}
+.stat .bignum{font-size:24px}
+/* home */
+.summary{padding:16px 18px 6px}
+.home-row{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;padding:14px 18px;border-top:.5px solid var(--sep);color:var(--blue);font-size:17px;text-align:left}
+.set-row{display:grid;grid-template-columns:30px 1fr;gap:14px;align-items:center;width:100%;border:0;background:none;padding:0 0 0 16px;text-align:left}
+.sr-main{display:flex;align-items:center;gap:10px;padding:12px 16px 12px 0;border-bottom:.5px solid var(--sep);min-width:0}
+.set-row:last-child .sr-main{border-bottom:0}
+.set-row .lbl{display:flex;flex-direction:column;flex:1;min-width:0}
+.set-row .lbl small{font-size:13px;color:var(--muted);margin-top:2px}
+.set-row .val{color:var(--muted);font-size:16px}
+.sicon{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:#fff}
+.sicon svg{width:18px;height:18px}
+.group-gap{height:26px}
+.footnote{font-size:13px;color:var(--muted);margin:10px 18px 0;line-height:1.4}
+/* transitions */
+.screen{animation:none}
+.push-in{animation:pushIn .38s cubic-bezier(.2,.8,.2,1)}
+.pop-in{animation:popIn .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes pushIn{from{transform:translateX(34%);opacity:.2}to{transform:none;opacity:1}}
+@keyframes popIn{from{transform:translateX(-24%);opacity:.2}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.push-in,.pop-in{animation:none}}
+/* editor sheet */
+.backdrop{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:540px;max-height:94dvh;overflow:auto;background:var(--sheet);border-radius:14px 14px 0 0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 max(30px,env(safe-area-inset-bottom,0px));
+  animation:sheetUp .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes sheetUp{from{transform:translateY(40%);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.sheet{animation:none}}
+.sheet-head{position:sticky;top:0;z-index:2;background:var(--sheet);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:16px 0 12px;border-bottom:.5px solid var(--sep)}
+.sheet-head button{border:0;background:none;color:var(--blue);padding:4px 0;font-size:17px}
+.sheet-head button:first-child{justify-self:start}
+.sheet-head button:last-child{justify-self:end;font-weight:600}
+.sheet-head span{font-weight:600}
+.flabel{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:22px 14px 7px}
+.fgroup{background:var(--card);border-radius:10px;overflow:hidden}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 14px;border-bottom:.5px solid var(--sep)}
+.frow:last-child{border-bottom:0}
+.frow label{flex:none}
+.frow input{border:0;background:transparent;text-align:right;color:var(--blue);min-width:0;width:60%}
+.wdays{display:flex;justify-content:space-between;gap:4px;padding:10px 10px}
+.wdays button{border:0;background:none;border-radius:50%;width:36px;height:36px;font-size:14px;color:var(--blue);display:grid;place-items:center;padding:0;line-height:1}
+.wdays button small{display:block;font-size:10px;color:var(--muted)}
+.wdays button.on{background:var(--blue);color:#fff}
+.wdays button.on small{color:#fff}
+.btn{width:100%;border:0;background:var(--card);border-radius:10px;padding:12px 14px;color:var(--blue);text-align:left;font-size:17px}
+.btn.danger{color:var(--red)}
+.stack{display:flex;flex-direction:column;gap:8px}
+.eapp{background:var(--card);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.eapp-top{display:grid;grid-template-columns:36px 1fr 30px;gap:10px;align-items:center}
+.eapp-top .icon{width:36px;height:36px;border-radius:9px;font-size:16px}
+.eapp-top input{border:0;background:transparent;font-size:17px;min-width:0;padding:4px 0}
+.rm{width:28px;height:28px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:20px;line-height:1;padding:0}
+.tline{display:flex;flex-wrap:wrap;align-items:center;gap:6px;color:var(--muted);font-size:15px}
+.tline select{flex:1 1 150px;min-width:0;border:0;border-radius:8px;background:var(--field);padding:6px 8px;font-size:15px}
+.tline input{width:52px;border:0;border-radius:8px;background:var(--field);padding:6px 6px;text-align:center;font-size:15px;font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--muted);margin:8px 14px;line-height:1.35}
+.err{font-size:13px;color:var(--red);margin:10px 14px;min-height:1em}
+.daytotal{font-size:15px;color:var(--fg);margin:10px 14px 0;font-variant-numeric:tabular-nums}
+</style>
+
+<div class="phone" id="app"></div>
+<div id="editorRoot"></div>
+
+<script>
+(() => {
+'use strict';
+/* ---------- constants ---------- */
+const CATEGORIES=['Social','Entertainment','Games','Productivity & Finance','Information & Reading','Creativity','Education','Utilities','Shopping & Food','Health & Fitness','Travel','Other'];
+const CAT_COLORS={'Social':'#5e9cf5','Entertainment':'#c06ef0','Games':'#7f7af0','Productivity & Finance':'#4fbfcf','Information & Reading':'#f2a33a','Creativity':'#ef6b9a','Education':'#5fbf6a','Utilities':'#8e8e93','Shopping & Food':'#e7b52f','Health & Fitness':'#ef5a5a','Travel':'#3fb9a0','Other':'#9b9ba1'};
+const ICON_COLORS=['#ef5a5a','#f08a3a','#e7b52f','#5fbf6a','#3fb9a0','#4fa8e0','#5e7cf0','#8a63e6','#c35fd0','#e0588d','#6d6d72','#2f8f7f'];
+const RANK=['var(--blue)','var(--teal)','var(--orange)'];
+const SETTINGS=[
+  {k:'downtime',t:'Downtime',s:'Schedule time away from the screen',c:'#5e5ce6',g:'<path d="M15.5 3.5a8.5 8.5 0 1 0 5 13.8A7 7 0 0 1 15.5 3.5z" fill="currentColor"/>'},
+  {k:'limits',t:'App Limits',s:'Set time limits for apps',c:'#ff9500',g:'<path d="M7 3h10v2l-4 6 4 6v2H7v-2l4-6-4-6z" fill="currentColor"/>'},
+  {k:'allowed',t:'Always Allowed',s:'Choose apps to allow at all times',c:'#34c759',g:'<path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'},
+  {k:'distance',t:'Screen Distance',s:'Reduce eye strain',c:'#007aff',g:'<circle cx="12" cy="12" r="3.2" fill="currentColor"/><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" stroke="currentColor" stroke-width="2" fill="none"/>'},
+];
+const SETTINGS2=[
+  {k:'communication',t:'Communication Limits',s:'Set limits based on contacts',c:'#34c759',g:'<path d="M4 5h16v10H9l-5 4z" fill="currentColor"/>'},
+  {k:'safety',t:'Communication Safety',s:'Protect from sensitive content',c:'#007aff',g:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="currentColor"/>'},
+  {k:'privacy',t:'Content & Privacy Restrictions',s:'Block inappropriate content',c:'#ff3b30',g:'<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2.4" fill="none"/><path d="M6.5 17.5l11-11" stroke="currentColor" stroke-width="2.4"/>'},
+];
+const ICON={
+  back:'<svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  left:'<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  right:'<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  chev:'<svg class="chev" viewBox="0 0 12 20"><path d="M2 2l8 8-8 8" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+const LOCAL_KEY='st-emulator-state-v1';
+
+/* ---------- helpers ---------- */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const dateKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const readDate=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d,12)};
+const shifted=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);x.setHours(12,0,0,0);return x};
+const startWeek=d=>shifted(d,-new Date(d).getDay());
+const weekDays=d=>{const s=startWeek(d);return Array.from({length:7},(_,i)=>shifted(s,i))};
+const today=()=>{const t=new Date();t.setHours(12,0,0,0);return t};
+const sameDay=(a,b)=>dateKey(a)===dateKey(b);
+const sum=a=>a.reduce((n,x)=>n+(+x||0),0);
+const emptyDay=()=>({apps:[],pickups:0,notifications:0});
+const dayTotal=d=>sum((d?.apps||[]).map(a=>a.minutes));
+function fmt(m){m=Math.round(m||0);const h=Math.floor(m/60),r=m%60;return h?(r?`${h}h ${r}m`:`${h}h`):`${r}m`}
+function hashStr(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function letterIcon(name,size){const n=String(name||'?').trim()||'?';const c=ICON_COLORS[hashStr(n.toLowerCase())%ICON_COLORS.length];
+  return `<span class="icon" style="background:${c}" aria-hidden="true">${esc(n[0].toUpperCase())}</span>`}
+function catIcon(cat){return `<span class="icon" style="background:${CAT_COLORS[cat]||'#9b9ba1'}" aria-hidden="true">${esc(cat[0])}</span>`}
+const clone=o=>JSON.parse(JSON.stringify(o));
+const normDay=d=>({apps:(d?.apps||[]).map(a=>({name:String(a.name||'').slice(0,60),category:CATEGORIES.includes(a.category)?a.category:'Other',minutes:Math.max(0,Math.min(1440,Math.round(+a.minutes||0)))})).filter(a=>a.name||a.minutes),
+  pickups:Math.max(0,Math.round(+d?.pickups||0)),notifications:Math.max(0,Math.round(+d?.notifications||0))});
+const isEmptyDay=d=>!d||(!d.apps.length&&!d.pickups&&!d.notifications);
+
+/* ---------- sample data (same behaviour as the supplied source) ---------- */
+function sampleDays(){const out={},t=today();
+  for(let i=-13;i<=0;i++){const x=shifted(t,i),k=(x.getDay()*17+dateKey(x).charCodeAt(9))%31;
+    out[dateKey(x)]={apps:[{name:'TikTok',category:'Entertainment',minutes:48+k},{name:'Instagram',category:'Social',minutes:37+(k%19)},{name:'YouTube',category:'Entertainment',minutes:30+(k%21)},{name:'Messages',category:'Social',minutes:21+(k%12)},{name:'Safari',category:'Information & Reading',minutes:18+(k%15)}],pickups:36+k,notifications:45+k*2}}
+  return out}
+function randomWeek(anchor){const out={},leader=Math.random()<.5?'Messages':'Spotify',gen=[];
+  const specs=[['Messages','Social',17,8],['Spotify','Entertainment',17,8],['Safari','Information & Reading',5,9],['Phone','Social',3,6],['Notes','Productivity & Finance',2,6],['Gmail','Productivity & Finance',1,7],['Maps','Travel',0,8],['Calendar','Productivity & Finance',0,4],['Calculator','Utilities',0,3]];
+  for(const date of weekDays(anchor)){gen.push({date,apps:specs.map(([name,category,base,range])=>({name,category,minutes:base+Math.floor(Math.random()*range)+(name===leader?3+Math.floor(Math.random()*5):0)})).filter(a=>a.minutes>0)})}
+  let weekly=sum(gen.map(d=>dayTotal(d)));
+  while(weekly>525){let moved=false;for(const day of gen){const app=day.apps.filter(a=>!['Messages','Spotify'].includes(a.name)&&a.minutes>1).sort((a,b)=>b.minutes-a.minutes)[0];if(app&&weekly>525){app.minutes--;weekly--;moved=true}}if(!moved)break}
+  for(const {date,apps} of gen)out[dateKey(date)]={apps,pickups:12+Math.floor(Math.random()*20),notifications:10+Math.floor(Math.random()*25)};
+  return out}
+
+/* ---------- state ---------- */
+let state={meta:{device:'Demo iPhone',settings:{}},days:{}};
+let ui={screen:'home',mode:'day',cursor:today(),showCategories:false,showAll:false,anim:''};
+let store={kind:'local',db:null,uid:null,status:'Saved on this device',loaded:false};
+const getDay=k=>{const key=typeof k==='string'?k:dateKey(k);return key>dateKey(today())?emptyDay():(state.days[key]||emptyDay())};
+
+function loadLocal(){try{const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'null');if(s&&s.days)return s}catch{}return null}
+function saveLocal(){try{localStorage.setItem(LOCAL_KEY,JSON.stringify(state))}catch{}}
+
+/* ---------- hourly distribution (deterministic per date; sums equal the day's app times) ---------- */
+const PROFILE=[.05,.02,.02,.02,.02,.04,.2,.6,.7,.8,.8,.9,1,1,1,1.1,1.1,1.2,1.4,1.4,1.4,1.3,.9,.4];
+function hourWeights(key,seedTag){const r=rng(hashStr(key+seedTag));const t=today();const cut=sameDay(readDate(key),t)?new Date().getHours():23;
+  let w=PROFILE.map((p,h)=>h>cut?0:(r()<.3?0:p*(.3+r()*1.4)));if(sum(w)===0)w=PROFILE.map((p,h)=>h>cut?0:1);return {w,r}}
+function pick(w,r,ok){let tot=0;for(let i=0;i<24;i++)if(ok(i))tot+=w[i];if(tot<=0)return -1;let x=r()*tot;for(let i=0;i<24;i++){if(!ok(i))continue;x-=w[i];if(x<=0)return i}for(let i=23;i>=0;i--)if(ok(i))return i;return -1}
+function hourly(key,ranks){const day=getDay(key);const {w,r}=hourWeights(key,'use');const load=Array(24).fill(0);const out=Array.from({length:24},()=>[0,0,0,0]);
+  const byCat={};for(const a of day.apps)byCat[a.category]=(byCat[a.category]||0)+(+a.minutes||0);
+  for(const [cat,mins] of Object.entries(byCat)){let ri=ranks.indexOf(cat);if(ri<0)ri=3;
+    for(let m=0;m<mins;m++){let h=pick(w,r,i=>load[i]<60&&w[i]>0);if(h<0)h=pick(w,r,i=>w[i]>0);if(h<0)h=12;load[h]++;out[h][ri]++}}
+  return out}
+function hourlyCount(key,total,tag){const {w,r}=hourWeights(key,tag);const out=Array(24).fill(0);for(let i=0;i<total;i++){const h=pick(w,r,i=>w[i]>0);out[h<0?12:h]++}return out}
+
+/* ---------- aggregation ---------- */
+function periodDays(){return ui.mode==='week'?weekDays(ui.cursor):[ui.cursor]}
+function aggregate(days){const apps={},cats={};for(const d of days){for(const a of getDay(d).apps){const k=a.name.trim().toLowerCase()||'(unnamed)';
+  apps[k]=apps[k]||{name:a.name||'Unnamed',category:a.category,minutes:0};apps[k].minutes+=+a.minutes||0;cats[a.category]=(cats[a.category]||0)+(+a.minutes||0)}}
+  return {apps:Object.values(apps).filter(a=>a.minutes>0).sort((a,b)=>b.minutes-a.minutes),cats:Object.entries(cats).filter(([,m])=>m>0).map(([name,minutes])=>({name,minutes})).sort((a,b)=>b.minutes-a.minutes)}}
+function elapsedDays(days){const t=today();const n=days.filter(d=>d<=t||sameDay(d,t)).length;return Math.max(1,n)}
+
+/* ---------- formatting ---------- */
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WD=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SMON=m=>MONTHS[m].slice(0,3);
+function dayTitle(d){const t=today();const base=`${MONTHS[d.getMonth()]} ${d.getDate()}`;if(sameDay(d,t))return `Today, ${base}`;if(sameDay(d,shifted(t,-1)))return `Yesterday, ${base}`;return `${WD[d.getDay()]}, ${base}`}
+function weekTitle(d){const s=startWeek(d),e=shifted(s,6),cur=startWeek(today());if(sameDay(s,cur))return 'This Week';if(sameDay(s,shifted(cur,-7)))return 'Last Week';
+  return s.getMonth()===e.getMonth()?`${SMON(s.getMonth())} ${s.getDate()} – ${e.getDate()}`:`${SMON(s.getMonth())} ${s.getDate()} – ${SMON(e.getMonth())} ${e.getDate()}`}
+function timeNow(){const t=new Date();let h=t.getHours(),ap=h<12?'AM':'PM';h=h%12||12;return `${h}:${pad(t.getMinutes())} ${ap}`}
+function niceMax(v,unit){if(unit==='h'){const h=Math.max(1,Math.ceil(v/60));return h*60}if(v<=30)return 30;return Math.ceil(v/60)*60}
+const axisLabel=(m)=>m>=60?`${m/60}h`:`${m}m`;
+
+/* ---------- charts (SVG drawn to one scale) ---------- */
+function usageChart(){const W=340,H=150,PL=0,PR=34,PT=12,PB=26,cw=W-PL-PR,ch=H-PT-PB;
+  const days=periodDays();const agg=aggregate(days);const ranks=agg.cats.slice(0,3).map(c=>c.name);
+  const rankOf=c=>{const i=ranks.indexOf(c);return i<0?3:i};const fills=[...RANK,'var(--rest)'];
+  let cols;if(ui.mode==='day'){const hs=hourly(dateKey(ui.cursor),ranks);cols=hs.map(stack=>stack)}
+  else{cols=days.map(d=>{const st=[0,0,0,0];for(const a of getDay(d).apps)st[rankOf(a.category)]+=+a.minutes||0;return st})}
+  const maxCol=Math.max(0,...cols.map(sum));const max=ui.mode==='day'?niceMax(maxCol,'m'):niceMax(maxCol,'h');
+  const n=cols.length,slot=cw/n,bw=ui.mode==='day'?Math.min(slot*.68,9):Math.min(slot*.56,26);const y=v=>PT+ch-(v/max)*ch;
+  let g='';
+  const lines=ui.mode==='day'?[max,max/2,0]:[max,max/2,0];
+  lines.forEach((v,i)=>{g+=`<line x1="${PL}" x2="${PL+cw}" y1="${y(v)}" y2="${y(v)}" stroke="var(--sep)" stroke-width="${i===2?1:.75}"/>`;
+    if(i!==1)g+=`<text x="${PL+cw+6}" y="${y(v)+4}" font-size="11">${v===0?'0':axisLabel(v)}</text>`});
+  if(ui.mode==='day'){[0,6,12,18,24].forEach(h=>{const x=PL+h*slot;g+=`<line x1="${x}" x2="${x}" y1="${PT}" y2="${PT+ch+16}" stroke="var(--sep)" stroke-dasharray="2 3" stroke-width=".75"/>`;
+      if(h<24)g+=`<text x="${x+4}" y="${H-6}" font-size="11">${['12 AM','6 AM','12 PM','6 PM'][h/6]}</text>`})}
+  cols.forEach((st,i)=>{const x=PL+i*slot+(slot-bw)/2;let acc=0;const tot=sum(st);
+    st.forEach((v,ri)=>{if(!v)return;const y0=y(acc),y1=y(acc+v);acc+=v;g+=`<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(.8,y0-y1).toFixed(1)}" fill="${fills[ri]}"/>`});
+    if(ui.mode==='week'){const d=days[i];const isT=sameDay(d,today());g+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-6}" font-size="11" text-anchor="middle" ${isT?'style="fill:var(--fg);font-weight:600"':''}>${'SMTWTFS'[i]}</text>`;
+      g+=`<rect x="${PL+i*slot}" y="${PT}" width="${slot}" height="${ch+PB}" fill="transparent" data-day="${dateKey(d)}" style="cursor:pointer"><title>${fmt(tot)}</title></rect>`}});
+  if(ui.mode==='week'){const avg=sum(cols.map(sum))/elapsedDays(days);if(avg>0){const ya=y(avg);g+=`<line x1="${PL}" x2="${PL+cw}" y1="${ya}" y2="${ya}" stroke="var(--green)" stroke-dasharray="4 3" stroke-width="1.2"/><text x="${PL+cw+6}" y="${ya+4}" font-size="11" style="fill:var(--green)">avg</text>`}}
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${ui.mode==='day'?'Hourly':'Daily'} screen time chart">${g}</svg>`,ranks,agg}}
+function miniChart(values,color,labels,minutes){const W=340,H=84,PR=34,PT=8,PB=labels?20:6,cw=W-PR,ch=H-PT-PB;const mx=Math.max(1,...values);const max=minutes?niceMax(mx,'h'):(mx<=5?5:Math.ceil(mx/5)*5);
+  const n=values.length,slot=cw/n,bw=Math.min(slot*(n>7?.6:.5),n>7?9:22);const y=v=>PT+ch-(v/max)*ch;let g='';
+  [max,0].forEach(v=>{g+=`<line x1="0" x2="${cw}" y1="${y(v)}" y2="${y(v)}" stroke="var(--sep)" stroke-width=".75"/><text x="${cw+6}" y="${y(v)+4}" font-size="11">${minutes&&v?axisLabel(v):v}</text>`});
+  values.forEach((v,i)=>{const x=i*slot+(slot-bw)/2;if(v)g+=`<rect x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(PT+ch-y(v)).toFixed(1)}" rx="1.5" fill="${color}"/>`;
+    if(labels&&labels[i])g+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-5}" font-size="11" text-anchor="${n>7?'start':'middle'}">${labels[i]}</text>`});
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`}
+
+/* ---------- screens ---------- */
+function navBar(left,title,right){return `<div class="nav">${left}<div class="nav-title"><b>${esc(title)}</b><span class="sim">SIMULATION</span></div>${right}</div>`}
+function render(){const a=$('app');const anim=ui.anim;ui.anim='';
+  a.innerHTML=`<div class="screen ${anim}">${ui.screen==='home'?homeHTML():activityHTML()}</div>`;bind()}
+function homeHTML(){const wk=weekDays(today());const totals=wk.map(d=>dayTotal(getDay(d)));const avg=sum(totals)/elapsedDays(wk);const s=state.meta.settings||{};
+  const setRows=list=>list.map(o=>`<button class="set-row" data-set="${o.k}"><span class="sicon" style="background:${o.c}"><svg viewBox="0 0 24 24">${o.g}</svg></span><span class="sr-main"><span class="lbl">${o.t}<small>${o.s}</small></span><span class="val">${s[o.k]?'On':'Off'}</span>${ICON.chev}</span></button>`).join('');
+  return `${navBar(`<button class="glass-btn round" aria-label="Back" id="noBack">${ICON.back}</button>`,'Screen Time',`<button class="glass-btn" id="edit">Edit</button>`)}
+  <h1 class="page-title">Screen Time</h1>
+  <div class="card"><div class="summary"><div class="biglabel">${esc(state.meta.device||'Demo iPhone')} · Daily Average</div><div class="bigline" style="margin-top:4px"><div class="bignum">${fmt(avg)}</div></div>
+  <div class="chart">${miniChart(totals,'var(--blue)',['S','M','T','W','T','F','S'],true)}</div></div>
+  <button class="home-row" id="seeAll">See All App &amp; Website Activity ${ICON.chev}</button></div>
+  <div class="updated">Updated today at ${timeNow()}</div>
+  <div class="group-gap"></div><div class="card">${setRows(SETTINGS)}</div>
+  <div class="group-gap"></div><div class="card">${setRows(SETTINGS2)}</div>
+  <p class="footnote">This is a simulation built for a class project. All numbers are entered or generated in the emulator; tap Edit to change them.</p>
+  <p class="sync" id="syncLine">${esc(store.status)}</p>`}
+function activityHTML(){const {svg,ranks,agg}=usageChart();const days=periodDays();const t=today();
+  const total=sum(days.map(d=>dayTotal(getDay(d))));const isWeek=ui.mode==='week';const avg=isWeek?total/elapsedDays(days):total;
+  let cmp='';if(isWeek){const prev=weekDays(shifted(startWeek(ui.cursor),-7));const pt=sum(prev.map(d=>dayTotal(getDay(d))))/7;if(pt>0&&avg>0){const pct=Math.round((avg-pt)/pt*100);cmp=`<span class="cmp">${pct>=0?'▲':'▼'} ${Math.abs(pct)}% from last week</span>`}}
+  const nextDisabled=isWeek?sameDay(startWeek(ui.cursor),startWeek(t)):sameDay(ui.cursor,t);
+  const catLine=agg.cats.slice(0,3).map((c,i)=>`<div><div class="cn" style="color:${RANK[i]}">${esc(c.name)}</div><div class="ct">${fmt(c.minutes)}</div></div>`).join('');
+  const list=ui.showCategories?agg.cats.map(c=>({name:c.name,minutes:c.minutes,cat:true})):agg.apps;const top=list[0]?.minutes||1;const vis=ui.showCategories||ui.showAll?list:list.slice(0,7);
+  const rows=vis.map((a,i)=>`<div class="row${i===vis.length-1?' last':''}">${a.cat?catIcon(a.name):letterIcon(a.name)}<div class="main"><div class="name">${esc(a.name)}</div><div class="barline"><span class="ubar" style="width:${Math.max(2,a.minutes/top*72).toFixed(1)}%"></span><span class="utime">${fmt(a.minutes)}</span></div></div>${ICON.chev}</div>`).join('');
+  const picks=days.map(d=>getDay(d).pickups),notes=days.map(d=>getDay(d).notifications);
+  const k=dateKey(ui.cursor);
+  const pVals=isWeek?picks:hourlyCount(k,picks[0],'pick'),nVals=isWeek?notes:hourlyCount(k,notes[0],'note');
+  const labs=isWeek?['S','M','T','W','T','F','S']:Array.from({length:24},(_,h)=>h%6===0?['12 AM','6 AM','12 PM','6 PM'][h/6]:'');
+  const stat=(title,vals,color)=>{const tot=sum(vals);const v=isWeek?Math.round(tot/elapsedDays(days)):tot;return `<div class="section-head"><span>${title}</span></div><div class="card stat"><div class="biglabel">${isWeek?'Daily Average':'Total'}</div><div class="bignum">${v}</div><div class="chart">${miniChart(vals,color,labs)}</div></div>`};
+  return `${navBar(`<button class="glass-btn round" aria-label="Back to Screen Time" id="back">${ICON.back}</button>`,state.meta.device||'Demo iPhone',`<button class="glass-btn" id="edit">Edit</button>`)}
+  <div class="seg" role="group" aria-label="Range"><button data-mode="week" aria-pressed="${isWeek}">Week</button><button data-mode="day" aria-pressed="${!isWeek}">Day</button></div>
+  <div class="card chart-card"><div class="datenav"><button class="circle" id="prev" aria-label="Previous ${isWeek?'week':'day'}">${ICON.left}</button><h2>${isWeek?weekTitle(ui.cursor):dayTitle(ui.cursor)}</h2><button class="circle" id="next" aria-label="Next ${isWeek?'week':'day'}" ${nextDisabled?'disabled':''}>${ICON.right}</button></div>
+  <div class="bigline"><div><div class="biglabel">${isWeek?'Daily Average':'Total'}</div><div class="bignum" id="periodTotal">${fmt(avg)}</div></div>${cmp}</div>
+  <div class="chart" id="usageChart">${svg}</div>
+  <div class="cats">${catLine||'<div class="cn" style="color:var(--muted)">No activity</div>'}</div></div>
+  <div class="updated">Updated today at ${timeNow()}</div>
+  <div class="section-head"><span>Most Used</span><button class="link" id="toggleCats">${ui.showCategories?'Show Apps':'Show Categories'}</button></div>
+  <div class="card">${rows||'<div class="empty">No activity</div>'}${!ui.showCategories&&list.length>7?`<div class="more"><button class="link" id="showMore">${ui.showAll?'Show Less':'Show More'}</button></div>`:(rows?'<div style="height:10px"></div>':'')}</div>
+  ${stat('Pickups',pVals,'var(--pick)')}${stat('Notifications',nVals,'var(--red)')}
+  <p class="sync" id="syncLine">${esc(store.status)}</p>`}
+
+function go(screen,dir){ui.screen=screen;ui.anim=dir==='back'?'pop-in':'push-in';render();window.scrollTo(0,0)}
+function bind(){const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
+  on('seeAll',()=>go('activity','fwd'));on('back',()=>go('home','back'));on('noBack',()=>{});on('edit',openEditor);
+  on('prev',()=>{ui.cursor=shifted(ui.cursor,ui.mode==='week'?-7:-1);render()});
+  on('next',()=>{let n=shifted(ui.cursor,ui.mode==='week'?7:1);if(n>today())n=today();ui.cursor=n;render()});
+  on('toggleCats',()=>{ui.showCategories=!ui.showCategories;render()});on('showMore',()=>{ui.showAll=!ui.showAll;render()});
+  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{ui.mode=b.dataset.mode;if(ui.mode==='day'&&ui.cursor>today())ui.cursor=today();render()});
+  document.querySelectorAll('[data-day]').forEach(r=>r.addEventListener('click',()=>{const d=readDate(r.dataset.day);if(d>today())return;ui.cursor=d;ui.mode='day';render()}));
+  document.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{const s=clone(state.meta.settings||{});s[b.dataset.set]=!s[b.dataset.set];const meta={...state.meta,settings:s};commit({meta},[])})}
+
+/* ---------- editor ---------- */
+let ed=null;
+function openEditor(){ed={date:dateKey(ui.mode==='day'?ui.cursor:(sameDay(startWeek(ui.cursor),startWeek(today()))?today():ui.cursor)),days:clone(state.days),meta:clone(state.meta)};renderEditor();
+  const s=$('sheet');if(s)s.focus()}
+function closeEditor(){ed=null;$('editorRoot').innerHTML=''}
+function edDay(){return ed.days[ed.date]||(ed.days[ed.date]=emptyDay())}
+function readEditor(){if(!ed)return;const d=edDay();const dev=$('edDevice');if(dev)ed.meta.device=dev.value.trim().slice(0,40)||'Demo iPhone';
+  d.apps=[...document.querySelectorAll('.eapp')].map(r=>{const h=Math.max(0,Math.floor(+r.querySelector('.hrs').value||0)),m=Math.max(0,Math.floor(+r.querySelector('.mins').value||0));
+    return {name:r.querySelector('.ename').value.trim(),category:r.querySelector('select').value,minutes:Math.min(1440,h*60+m)}});
+  d.pickups=Math.max(0,Math.floor(+$('edPickups').value||0));d.notifications=Math.max(0,Math.floor(+$('edNotes').value||0))}
+function renderEditor(msg){const d=edDay();const sel=readDate(ed.date);const wk=weekDays(sel);
+  $('editorRoot').innerHTML=`<div class="backdrop" id="bd"><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="edTitle" tabindex="-1">
+  <div class="sheet-head"><button id="edCancel">Cancel</button><span id="edTitle">Edit Activity</span><button id="edDone">Done</button></div>
+  <p class="note" style="margin-top:12px">You're editing the emulator's simulated data. Changes save to your account when you tap Done.</p>
+  <div class="flabel">Device</div><div class="fgroup"><div class="frow"><label for="edDevice">Name</label><input id="edDevice" value="${esc(ed.meta.device||'Demo iPhone')}" maxlength="40"></div></div>
+  <div class="flabel">Day</div><div class="fgroup"><div class="frow"><label for="edDate">Date</label><input id="edDate" type="date" value="${ed.date}"></div>
+  <div class="wdays">${wk.map((x,i)=>`<button data-ed="${dateKey(x)}" class="${dateKey(x)===ed.date?'on':''}" aria-label="${WD[i]} ${x.getDate()}"><span>${'SMTWTFS'[i]}<small>${x.getDate()}</small></span></button>`).join('')}</div></div>
+  <div class="flabel">Selected Week</div><div class="stack"><button class="btn" id="edRandom">Fill Week with Random Sample</button><button class="btn danger" id="edReset">Reset Selected Week</button></div>
+  <p class="note">Both act on ${weekTitle(sel).replace('This Week','this week').replace('Last Week','last week')} in this editor only. Tap Done to save or Cancel to discard.</p>
+  <div class="flabel">Apps &amp; Websites</div><div class="stack" id="edApps">${d.apps.map((a,i)=>`<div class="eapp" data-i="${i}"><div class="eapp-top">${letterIcon(a.name)}<input class="ename" id="edName${i}" aria-label="App name" placeholder="App name" value="${esc(a.name)}" maxlength="60"><button class="rm" data-rm="${i}" aria-label="Remove ${esc(a.name||'app')}">−</button></div>
+    <div class="tline"><select id="edCat${i}" aria-label="Category">${CATEGORIES.map(c=>`<option ${c===a.category?'selected':''}>${esc(c)}</option>`).join('')}</select>
+    <input class="hrs" id="edH${i}" type="number" min="0" max="24" inputmode="numeric" aria-label="Hours" value="${Math.floor((+a.minutes||0)/60)}"><span>hr</span><input class="mins" id="edM${i}" type="number" min="0" max="59" inputmode="numeric" aria-label="Minutes" value="${(+a.minutes||0)%60}"><span>min</span></div></div>`).join('')}
+  <button class="btn" id="edAdd">＋ Add App or Website</button></div>
+  <div class="daytotal" id="edTotal">Total for this day: ${fmt(dayTotal(d))}</div>
+  <p class="note">App times make up the day's total, the categories and the charts.</p>
+  <div class="flabel">Other Activity</div><div class="fgroup"><div class="frow"><label for="edPickups">Pickups</label><input id="edPickups" type="number" min="0" inputmode="numeric" value="${d.pickups||0}"></div>
+  <div class="frow"><label for="edNotes">Notifications</label><input id="edNotes" type="number" min="0" inputmode="numeric" value="${d.notifications||0}"></div></div>
+  <div class="err" id="edErr" role="alert">${esc(msg||'')}</div></div></div>`;
+  const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
+  on('edCancel',closeEditor);on('edDone',saveEditor);
+  $('bd').onclick=e=>{if(e.target.id==='bd')closeEditor()};
+  $('edDate').onchange=e=>{if(!e.target.value)return;readEditor();ed.date=e.target.value;renderEditor()};
+  document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{readEditor();ed.date=b.dataset.ed;renderEditor()});
+  document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{readEditor();edDay().apps.splice(+b.dataset.rm,1);renderEditor()});
+  on('edAdd',()=>{readEditor();edDay().apps.push({name:'',category:'Other',minutes:0});renderEditor();const n=$('edName'+(edDay().apps.length-1));if(n)n.focus()});
+  on('edRandom',()=>{readEditor();Object.assign(ed.days,randomWeek(sel));renderEditor('Random sample added for this week. Tap Done to save it.')});
+  on('edReset',()=>{readEditor();for(const x of wk)delete ed.days[dateKey(x)];renderEditor('Week cleared in the editor. Tap Done to save it.')});
+  $('edApps').oninput=()=>{readEditor();$('edTotal').textContent='Total for this day: '+fmt(dayTotal(edDay()))};
+  document.addEventListener('keydown',escClose)}
+function escClose(e){if(e.key==='Escape'&&ed){closeEditor();document.removeEventListener('keydown',escClose)}}
+function saveEditor(){readEditor();
+  for(const [k,d] of Object.entries(ed.days)){if(d.apps.some(a=>!a.name&&a.minutes>0)){ed.date=k;renderEditor('Give every app with time a name, or remove it.');return}}
+  const days={};for(const [k,d] of Object.entries(ed.days)){const n=normDay(d);if(!isEmptyDay(n))days[k]=n}
+  const changed=[...new Set([...Object.keys(days),...Object.keys(state.days)])].filter(k=>JSON.stringify(days[k]||null)!==JSON.stringify(state.days[k]||null));
+  const meta=JSON.stringify(ed.meta)!==JSON.stringify(state.meta)?ed.meta:null;
+  const changes={};for(const k of changed)changes[k]=days[k]||null;
+  const target=ed.date;closeEditor();
+  if(ui.mode==='day'&&changed.includes(target))ui.cursor=readDate(target)>today()?today():readDate(target);
+  commit(meta?{meta}:{},changed,changes)}
+
+/* ---------- persistence ---------- */
+let writing=Promise.resolve(),inflight=0;
+function setStatus(s){store.status=s;const l=$('syncLine');if(l)l.textContent=s}
+function commit(part,keys,changes={}){if(part.meta)state.meta=part.meta;for(const k of keys){if(changes[k])state.days[k]=changes[k];else delete state.days[k]}
+  render();
+  if(store.kind!=='cloud'){saveLocal();setStatus('Saved on this device');return}
+  const col=store.db.collection('data/users/'+store.uid);setStatus('Saving…');
+  inflight++;writing=writing.then(async()=>{try{
+      if(part.meta)await col.doc('meta').set({device:state.meta.device,settings:state.meta.settings||{},seeded:true});
+      for(const k of keys){const ref=col.doc('day-'+k);if(changes[k])await ref.set(changes[k]);else await ref.delete()}
+      saveLocal();setStatus('Saved to your account · '+timeNow())
+    }catch(e){setStatus(e&&e.code==='quota_exceeded'?'Storage is full. Reset an old week to free space.':'Could not save to your account. Your change is kept on this device; try again.');saveLocal()}finally{inflight--}})}
+
+async function seedCloud(col){const days=sampleDays();state.days=days;state.meta={device:'Demo iPhone',settings:{}};render();
+  try{await col.doc('meta').set({device:'Demo iPhone',settings:{},seeded:true});for(const [k,d] of Object.entries(days))await col.doc('day-'+k).set(d);setStatus('Saved to your account · '+timeNow())}
+  catch{setStatus('Showing sample data. It could not be saved to your account yet.')}}
+
+async function connect(){const c=window.claude;if(!c||typeof c.use!=='function'){finishLocal();return}
+  let db=null,user=null;try{[db,user]=await Promise.all([c.use('db'),c.use('user')])}catch{}
+  const uid=user?await user.id():null;if(!db||!uid){finishLocal();return}
+  store.kind='cloud';store.db=db;store.uid=uid;setStatus('Loading your saved activity…');
+  const col=db.collection('data/users/'+uid);let seeded=false;
+  const timer=setTimeout(()=>{if(!store.loaded)setStatus('Your account can’t be reached yet. Showing what is on this device.')},10000);
+  col.onSnapshot(snap=>{const days={};let meta=null;
+      for(const doc of snap.docs){const d=doc.data();if(doc.id==='meta')meta=d;else if(doc.id.startsWith('day-'))days[doc.id.slice(4)]=normDay(d)}
+      if(!snap.metadata.fromCache){clearTimeout(timer);store.loaded=true}
+      if(!meta&&!snap.metadata.fromCache){if(!seeded){seeded=true;setTimeout(()=>seedCloud(col),0)}return}
+      if(!meta||inflight)return;
+      state={meta:{device:meta.device||'Demo iPhone',settings:meta.settings||{}},days};saveLocal();
+      if(!snap.metadata.hasPendingWrites&&!ed){render();setStatus('Synced with your account · '+timeNow())}
+    },()=>{clearTimeout(timer);setStatus('Sync stopped. Reload the page to reconnect.')});}
+function finishLocal(){store.kind='local';if(!loadLocal()){state={meta:{device:'Demo iPhone',settings:{}},days:sampleDays()};saveLocal()}setStatus('Saved on this device only (sign in to sync)');render()}
+
+/* boot: render cached data at once, then connect */
+const cached=loadLocal();if(cached)state={meta:{device:cached.meta?.device||'Demo iPhone',settings:cached.meta?.settings||{}},days:Object.fromEntries(Object.entries(cached.days).map(([k,d])=>[k,normDay(d)]))};
+render();connect();
+setInterval(()=>{if(!ed){const u=document.querySelector('.updated');if(u)u.textContent='Updated today at '+timeNow()}},30000);
+})();
+</script>
