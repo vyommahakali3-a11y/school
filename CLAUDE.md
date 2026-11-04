@@ -13,7 +13,7 @@ Read this first. It is the background for this repo, so the user does not have t
 - The user asked not to run them through an "AI humanizer". Don't offer to.
 
 ## Google Drive (owned by vyommahakali3)
-All 35 professors in one sheet, with Topic, PDF to attach, In Gmail Drafts and Sent columns: https://docs.google.com/spreadsheets/d/1yxEAfULbW8NmA57qr1in9n57gX6A96a9WoFJMImPjZE/edit
+All professors (62 as of the latest additions) in one sheet, with Topic, PDF to attach, In Gmail Drafts and Sent columns: https://docs.google.com/spreadsheets/d/1yxEAfULbW8NmA57qr1in9n57gX6A96a9WoFJMImPjZE/edit
 
 Professor sheets, one per topic:
 - Self-Healing Polymers (9): https://docs.google.com/spreadsheets/d/1mLBljl2zlih5ligwS68TXxdS2l_af5ONn-gTTRaOf-c/edit
@@ -38,7 +38,10 @@ In each sheet, the "Email body" column is a formula built from the "Email templa
 - **Don't commit professor lists, CSVs or emails to this repo.** The user asked to undo that once.
 
 ## Sending status
-- Gmail Drafts in vyommahakali3 hold all 35 drafts, one per professor across all six topics. **None sent yet.**
+- Gmail Drafts in vyommahakali3 hold 54 drafts: the original 35 plus 19 for professors added later (sheet rows 35–62). **None sent yet.**
+- 9 newer professors are held with no draft (no email, no real paper, duplicate paper, or not a professor). The reason is in the sheet's "In Gmail Drafts" column.
+- Some newer rows are UC Riverside, which breaks the 40-minute rule above. They were drafted because the user asked for every new row; confirm with the user before sending.
+- Zuzanna Siwy (nanocellulose) was dropped from the combined sheet, but her draft is still in Gmail.
 - The user attaches the PDFs by hand. The Gmail connector only takes attachments pasted in as base64 (about 280K characters per PDF), so Claude can't reliably attach them. Computer use can't click inside a browser, so it can't do this either.
 - Before sending, check: James and Su (4D printing, Cal State Fullerton) have email addresses from old papers, so confirm them on their faculty pages. Kulinsky and Madou are weaker topic matches.
 - After the user sends emails, mark them "Yes" in the Sent column of the all-professors sheet and of that topic's sheet.
