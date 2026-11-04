@@ -13,6 +13,8 @@ Read this first. It is the background for this repo, so the user does not have t
 - The user asked not to run them through an "AI humanizer". Don't offer to.
 
 ## Google Drive (owned by vyommahakali3)
+All 35 professors in one sheet, with Topic, PDF to attach, In Gmail Drafts and Sent columns: https://docs.google.com/spreadsheets/d/1yxEAfULbW8NmA57qr1in9n57gX6A96a9WoFJMImPjZE/edit
+
 Professor sheets, one per topic:
 - Self-Healing Polymers (9): https://docs.google.com/spreadsheets/d/1mLBljl2zlih5ligwS68TXxdS2l_af5ONn-gTTRaOf-c/edit
 - 4D Printing (12): https://docs.google.com/spreadsheets/d/1cjTOKZ0fpj3IDzy_2Q4E27N3UgCr4xjy9yjnOecrnz0/edit
@@ -39,7 +41,7 @@ In each sheet, the "Email body" column is a formula built from the "Email templa
 - Gmail Drafts in vyommahakali3 hold 21 drafts: the 9 self-healing polymers emails and the 12 4D printing emails. **None sent yet.**
 - The user attaches the PDFs by hand. The Gmail connector only takes attachments pasted in as base64 (about 280K characters per PDF), so Claude can't reliably attach them. Computer use can't click inside a browser, so it can't do this either.
 - Before sending, check: James and Su (4D printing, Cal State Fullerton) have email addresses from old papers, so confirm them on their faculty pages. Kulinsky and Madou are weaker topic matches.
-- After the user sends emails, mark them in each sheet's "Sent" column.
+- After the user sends emails, mark them "Yes" in the Sent column of the all-professors sheet and of that topic's sheet.
 - Thermoelectric, wound-healing hydrogel, aerogel and nanocellulose emails: no drafts yet. Wu and Jordan run theory groups. Mohraz and Lee have older email addresses. Siwy is a co-author, not the lead author, on the paper mentioned.
 
 ## Connector notes
