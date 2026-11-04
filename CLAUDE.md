@@ -38,11 +38,11 @@ In each sheet, the "Email body" column is a formula built from the "Email templa
 - **Don't commit professor lists, CSVs or emails to this repo.** The user asked to undo that once.
 
 ## Sending status
-- Gmail Drafts in vyommahakali3 hold 21 drafts: the 9 self-healing polymers emails and the 12 4D printing emails. **None sent yet.**
+- Gmail Drafts in vyommahakali3 hold all 35 drafts, one per professor across all six topics. **None sent yet.**
 - The user attaches the PDFs by hand. The Gmail connector only takes attachments pasted in as base64 (about 280K characters per PDF), so Claude can't reliably attach them. Computer use can't click inside a browser, so it can't do this either.
 - Before sending, check: James and Su (4D printing, Cal State Fullerton) have email addresses from old papers, so confirm them on their faculty pages. Kulinsky and Madou are weaker topic matches.
 - After the user sends emails, mark them "Yes" in the Sent column of the all-professors sheet and of that topic's sheet.
-- Thermoelectric, wound-healing hydrogel, aerogel and nanocellulose emails: no drafts yet. Wu and Jordan run theory groups. Mohraz and Lee have older email addresses. Siwy is a co-author, not the lead author, on the paper mentioned.
+- Other flags: Wu and Jordan run theory groups. Mohraz and Lee have older email addresses. Siwy is a co-author, not the lead author, on the paper mentioned.
 
 ## Connector notes
 - Drive, Sheets, Docs and Gmail should all be signed in as vyommahakali3. If an edit to one of these files returns "permission denied", that connector is probably signed into the wrong account. Ask the user to reconnect it in claude.ai connector settings.
