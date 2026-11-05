@@ -35,12 +35,13 @@ In each sheet, the "Email body" column is a formula built from the "Email templa
 - Only professors within about a **40-minute drive of Irvine**: UCI, Chapman, Cal State Fullerton, Cal State Long Beach, Cal Poly Pomona. No UCLA, USC, UC Riverside or UC San Diego.
 - Each professor appears in **one topic only** and gets **one email**, which mentions **one** literature review that matches their work.
 - Email template: the user's own wording, from Vyom Mahakali, naming Ryan Kim as partner. Subject: "High school students interested in shadowing your lab (<topic>)".
-- **No resumes.** The user chose to drop them. The emails say "We have attached a copy of our literature review for your convenience."
+- **Resumes (changed 2026-11-05):** the user wants new drafts to say both resumes are attached: "We have attached both of our resumes (mine and Ryan Kim's) as well as a copy of our literature review for your convenience." Vyom's resume PDF exists; Ryan's does not exist yet. About 34 earlier emails were already sent without the resume line.
 - **Never send an email unless the user explicitly says to send it.**
 - **Don't commit professor lists, CSVs or emails to this repo.** The user asked to undo that once.
 
 ## Sending status
-- Gmail Drafts in vyommahakali3 hold about 140 drafts (the sheet counts 136; Siwy and the UC Riverside drafts are no longer in the sheet). **None sent yet.**
+- About 34 of the first emails were already sent by the user (the sheet's Sent column is out of date). About 105 drafts remain in Gmail; 23 have the resume line, 82 do not.
+- **Never call update_draft on a draft that has attachments**: it removes them. Find those first with list_drafts query `subject:"interested in shadowing your lab" has:attachment`. The user attaches PDFs in the Gmail web UI.
 - 9 newer professors are held with no draft (no email, no real paper, duplicate paper, or not a professor). The reason is in the sheet's "In Gmail Drafts" column.
 - Some newer rows are UC Riverside, which breaks the 40-minute rule above. They were drafted because the user asked for every new row; confirm with the user before sending.
 - Zuzanna Siwy (nanocellulose) was dropped from the combined sheet, but her draft is still in Gmail.
