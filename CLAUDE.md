@@ -52,7 +52,7 @@ In each sheet, the "Email body" column is a formula built from the "Email templa
 
 ## Standing instruction
 - Whenever new professors are added to the all-professors sheet, create their Gmail drafts automatically, without being asked. Use the same template, hold rules and column I labels as before, and never send.
-- A scheduled task, "Draft emails for new professors" (trig_0117MRnXpC7Gp3KKaAw8yq9g), checks the sheet hourly from 7:17am to 10:17pm Pacific. It only works once the Gmail and Google Sheets connectors are added to it in the claude.ai scheduled tasks settings.
+- The hourly scheduled task that did this automatically was deleted by the user on 2026-11-05. Drafting new rows now happens only when the user asks in a session.
 
 ## Connector notes
 - Drive, Sheets, Docs and Gmail should all be signed in as vyommahakali3. If an edit to one of these files returns "permission denied", that connector is probably signed into the wrong account. Ask the user to reconnect it in claude.ai connector settings.
