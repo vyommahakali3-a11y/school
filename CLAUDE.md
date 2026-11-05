@@ -47,5 +47,9 @@ In each sheet, the "Email body" column is a formula built from the "Email templa
 - After the user sends emails, mark them "Yes" in the Sent column of the all-professors sheet and of that topic's sheet.
 - Other flags: Wu and Jordan run theory groups. Mohraz and Lee have older email addresses. Siwy is a co-author, not the lead author, on the paper mentioned.
 
+## Standing instruction
+- Whenever new professors are added to the all-professors sheet, create their Gmail drafts automatically, without being asked. Use the same template, hold rules and column I labels as before, and never send.
+- A scheduled task, "Draft emails for new professors" (trig_0117MRnXpC7Gp3KKaAw8yq9g), checks the sheet hourly from 7:17am to 10:17pm Pacific. It only works once the Gmail and Google Sheets connectors are added to it in the claude.ai scheduled tasks settings.
+
 ## Connector notes
 - Drive, Sheets, Docs and Gmail should all be signed in as vyommahakali3. If an edit to one of these files returns "permission denied", that connector is probably signed into the wrong account. Ask the user to reconnect it in claude.ai connector settings.
